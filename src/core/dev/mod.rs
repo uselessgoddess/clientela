@@ -1,0 +1,16 @@
+#[cfg(feature = "editor")]
+mod editor;
+mod picking;
+mod ui;
+
+use bevy::{dev_tools::states::log_transitions, prelude::*};
+
+use crate::prelude::*;
+
+pub(super) fn plugin(app: &mut App) {
+  app.add_systems(Update, log_transitions::<Game>);
+
+  app.add_plugins((picking::plugin, ui::plugin));
+  #[cfg(feature = "editor")]
+  app.add_plugins(editor::plugin);
+}

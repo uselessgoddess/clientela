@@ -16,6 +16,20 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 
+bevy_asset_loader = { version = "0.25"}
+leafwing-input-manager = { version = "0.20", default-features = false, features = [
+    "mouse",
+    "keyboard",
+    "gamepad",
+    "picking",
+] }
+
+# Editor egui
+egui = { version = "0.33", optional = true }
+egui_dock = { version = "0.18", optional = true }
+bevy_egui = { version = "0.39", optional = true }
+bevy-inspector-egui = { version = "0.36", optional = true }
+
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
 
@@ -30,13 +44,16 @@ dev = [
     # Improve error messages coming from Bevy
     "bevy/track_location",
 ]
+native = []
+editor = ["egui", "egui_dock", "bevy_egui", "bevy-inspector-egui"]
 dev_native = [
-    "dev",
+    "dev", "native", "editor",
     # Enable asset hot reloading for native dev builds.
     "bevy/file_watcher",
     # Enable embedded asset hot reloading for native dev builds.
     "bevy/embedded_watcher",
 ]
+trace = ["bevy/trace", "bevy/trace_tracy"]
 
 
 [package.metadata.bevy_cli.release]
