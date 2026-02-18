@@ -1,8 +1,9 @@
 pub mod actors;
 mod camera;
 mod follow;
+mod logic;
 
-use crate::prelude::*;
+use crate::{level::actors::Player, prelude::*};
 
 pub use follow::{Follow, FollowMouse};
 
@@ -14,7 +15,7 @@ pub fn plugin(app: &mut App) {
       .load_collection::<LevelAssets>(),
   );
 
-  app.add_plugins((camera::plugin, follow::plugin));
+  app.add_plugins((camera::plugin, follow::plugin, logic::plugin));
 }
 
 // todo!> find better name
@@ -33,8 +34,8 @@ pub fn spawn_level(mut commands: Commands, assets: Res<LevelAssets>) {
   commands
     .spawn((Name::new("Level"), DespawnOnExit(Game::Gameplay), Level {}))
     .with_children(|parent| {
-      //parent
-      //  .spawn((Name::new("Player"), Player))
-      //  .insert(Transform2D::from_xy(10.0, 0.0));
+      parent
+        .spawn((Name::new("Player"), Player))
+        .insert(Transform2D::from_xy(0.0, 0.0));
     });
 }

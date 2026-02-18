@@ -2,8 +2,7 @@
 #![feature(iter_map_windows)]
 #![feature(array_windows)]
 
-use level::actors;
-use crate::prelude::*;
+use {crate::prelude::*, level::actors};
 
 mod core;
 mod level;

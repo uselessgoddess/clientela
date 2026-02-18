@@ -15,16 +15,14 @@ pub struct Enemy;
 
 #[derive(Component, Reflect)]
 pub struct Stats {
-  pub vision: f32,
   pub speed: f32,
   pub attack: Attack,
-  pub patrol: Patrol,
 }
 
 impl Default for Stats {
   fn default() -> Self {
-    // todo!> use config loading, to avoid `tilemap::METER` mul
-    Self { speed: 2.0, vision: 10.0, attack: default(), patrol: default() }
+    // todo!> use config loading
+    Self { speed: 2.0, attack: default() }
   }
 }
 
@@ -39,18 +37,6 @@ impl Default for Attack {
   fn default() -> Self {
     // todo!> use solid user/enemy radius or else use ray/shape casting
     Self { range: (0.5 + 0.33 + 0.25), damage: 1.0 }
-  }
-}
-
-#[derive(Reflect)]
-pub struct Patrol {
-  pub rays: u8,
-  pub range: f32,
-}
-
-impl Default for Patrol {
-  fn default() -> Self {
-    Self { rays: 8, range: 5.0 }
   }
 }
 

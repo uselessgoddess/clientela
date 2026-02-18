@@ -8,7 +8,7 @@ background_timer!(StepsTimer);
 
 pub fn plugin(app: &mut App) {
   register(app)
-    .add_plugins((assets::plugin, input::plugin))
+    .add_plugins((assets::plugin, input::plugin, state::plugin))
     .add_systems(Update, (spawn).in_set(Systems::Spawn));
 }
 
