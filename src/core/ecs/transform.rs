@@ -9,8 +9,7 @@ pub enum Transform2DSystems {
 pub fn plugin(app: &mut App) {
   app.configure_sets(
     PostUpdate,
-    Transform2DSystems::Propagate
-      .after(TransformSystems::Propagate),
+    Transform2DSystems::Propagate.after(TransformSystems::Propagate),
   );
   app.register_type::<Transform2D>();
   app.add_systems(First, spawn);
@@ -144,6 +143,12 @@ impl From<Transform2D> for Transform {
       rotation: Quat::from_rotation_z(rotation.as_radians()),
       scale: scale.extend(1.0),
     }
+  }
+}
+
+impl From<Transform2D> for Isometry2d {
+  fn from(Transform2D { translation, rotation, .. }: Transform2D) -> Self {
+    Self { rotation, translation }
   }
 }
 

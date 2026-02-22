@@ -2,10 +2,15 @@ pub mod actors;
 mod camera;
 mod follow;
 pub mod logic;
+mod velocity;
 
 use crate::{level::actors::Player, prelude::*};
 
-pub use follow::{Follow, FollowMouse};
+pub use {
+  camera::CameraSystems,
+  follow::{Follow, FollowMouse},
+  velocity::{Velocity, VelocitySystems},
+};
 
 pub fn plugin(app: &mut App) {
   app.register_type::<LevelAssets>();
@@ -15,7 +20,12 @@ pub fn plugin(app: &mut App) {
       .load_collection::<LevelAssets>(),
   );
 
-  app.add_plugins((camera::plugin, follow::plugin, logic::plugin));
+  app.add_plugins((
+    camera::plugin,
+    velocity::plugin,
+    follow::plugin,
+    logic::plugin,
+  ));
 }
 
 // todo!> find better name
@@ -30,7 +40,15 @@ pub struct Obstacle;
 #[require(Visibility, Transform)]
 pub struct Level {}
 
-pub fn spawn_level(mut commands: Commands, assets: Res<LevelAssets>) {
+pub use crate::actors::env::{BackgroundMaterial, spawn_background};
+
+pub fn spawn_level(
+  mut commands: Commands,
+  assets: Res<LevelAssets>,
+  // --
+  mut meshes: ResMut<Assets<Mesh>>,
+  mut bg_materials: ResMut<Assets<BackgroundMaterial>>,
+) {
   commands
     .spawn((Name::new("Level"), DespawnOnExit(Game::Gameplay), Level {}))
     .with_children(|parent| {
@@ -38,4 +56,6 @@ pub fn spawn_level(mut commands: Commands, assets: Res<LevelAssets>) {
         .spawn((Name::new("Player"), Player))
         .insert(Transform2D::from_xy(0.0, 0.0));
     });
+
+  spawn_background(&mut commands, &assets, &mut bg_materials, &mut meshes);
 }

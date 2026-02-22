@@ -2,7 +2,7 @@ mod assets;
 mod input;
 mod state;
 
-use crate::prelude::*;
+use crate::{level::Velocity, prelude::*};
 
 background_timer!(StepsTimer);
 
@@ -24,6 +24,7 @@ fn register(app: &mut App) -> &mut App {
 pub struct Player;
 
 #[derive(Component, Reflect)]
+#[require(Velocity)]
 pub struct Stats {
   pub speed: f32,
 }

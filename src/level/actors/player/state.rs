@@ -1,4 +1,4 @@
-use crate::{actors::Player, prelude::*};
+use crate::{actors::Player, level::Velocity, prelude::*};
 
 use super::input::Action as Input;
 
@@ -38,15 +38,14 @@ pub fn input(
 
 pub fn movement(
   mut events: MessageReader<Action>,
-  player: Single<(&mut Transform2D, &super::Stats), With<Player>>,
-  time: Res<Time>,
+  player: Single<(&mut Velocity, &super::Stats), With<Player>>,
 ) {
-  let (mut transform, stats) = player.into_inner();
+  let (mut velocity, stats) = player.into_inner();
 
   for action in events.read().copied() {
     match action {
       Action::Move(direction) => {
-        transform.translation += direction * stats.speed * time.delta_secs();
+        velocity.0 = direction.normalize_or_zero() * stats.speed;
       }
     }
   }

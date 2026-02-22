@@ -1,6 +1,6 @@
 mod state;
 
-use crate::prelude::*;
+use crate::{level::Velocity, prelude::*};
 
 pub fn plugin(app: &mut App) {
   app.add_plugins((
@@ -14,6 +14,7 @@ pub fn plugin(app: &mut App) {
 pub struct Enemy;
 
 #[derive(Component, Reflect)]
+#[require(Velocity)]
 pub struct Stats {
   pub speed: f32,
   pub attack: Attack,

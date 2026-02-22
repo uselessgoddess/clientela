@@ -18,5 +18,6 @@ pub struct CreditsAssets {
 pub struct LevelAssets {
   #[asset(path = "audio/music/Fluffing A Duck.ogg")]
   pub music: Handle<AudioSource>,
+  #[asset(path = "shaders/background.wgsl")]
+  pub background_shader: Handle<Shader>,
 }
-

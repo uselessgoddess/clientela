@@ -1,7 +1,7 @@
 pub mod enemy;
 pub mod env;
-pub mod player;
 mod palette;
+pub mod player;
 
 use crate::prelude::*;
 
