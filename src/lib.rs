@@ -20,5 +20,10 @@ impl Plugin for GamePlugin {
     );
 
     app.add_plugins((ui::plugin, level::plugin, actors::plugin));
+    app.add_systems(Startup, setup);
   }
+}
+
+fn setup(mut commands: Commands) {
+  // commands.insert_resource(D::L2);
 }

@@ -2,7 +2,10 @@ mod assets;
 mod input;
 mod state;
 
-use crate::{level::Velocity, prelude::*};
+use crate::{
+  level::{Velocity, actors::ForceField},
+  prelude::*,
+};
 
 background_timer!(StepsTimer);
 
@@ -51,5 +54,7 @@ fn spawn(
       .entity(player)
       .insert((input::map(), state::Controller))
       .insert((Mesh2d(mesh), MeshMaterial2d(material)));
+
+    commands.spawn(ForceField { radius: 10.0, strength: 10.0 });
   }
 }

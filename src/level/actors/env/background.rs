@@ -1,21 +1,29 @@
-use {
-  crate::prelude::*,
-  bevy::{
-    prelude::*,
-    render::render_resource::AsBindGroup,
-    shader::ShaderRef,
-    sprite_render::{Material2d, Material2dPlugin},
-  },
+use crate::{level::actors::ForceField, prelude::*};
+
+use bevy::{
+  prelude::*,
+  render::render_resource::{AsBindGroup, ShaderType},
+  shader::ShaderRef,
+  sprite_render::{Material2d, Material2dPlugin},
 };
 
 pub fn plugin(app: &mut App) {
   app
     .add_plugins(Material2dPlugin::<BackgroundMaterial>::default())
     .register_type::<BackgroundMaterial>()
-    .add_systems(Update, update_background_offset.in_set(Systems::Update));
+    .add_systems(Update, update_background.in_set(Systems::Update));
 }
 
-#[derive(Reflect, Asset, AsBindGroup, Debug, Clone)]
+const MAX_GRAVITY_WELLS: usize = 16;
+
+#[derive(ShaderType, Default, Debug, Clone, Reflect)]
+pub struct GravityWell {
+  pub position: Vec2,
+  pub strength: f32,
+  pub radius: f32,
+}
+
+#[derive(Reflect, Asset, AsBindGroup, Default, Debug, Clone)]
 pub struct BackgroundMaterial {
   #[uniform(0)]
   pub color: LinearRgba,
@@ -27,6 +35,13 @@ pub struct BackgroundMaterial {
   pub line_thickness: f32,
   #[uniform(0)]
   pub scale: f32,
+  // --
+  #[uniform(0)]
+  pub time: f32,
+  #[uniform(0)]
+  pub well_count: i32,
+  #[uniform(1)]
+  pub wells: [GravityWell; MAX_GRAVITY_WELLS],
 }
 
 impl Material2d for BackgroundMaterial {
@@ -52,6 +67,7 @@ pub fn spawn_background(
     grid_size: 5.0,
     line_thickness: 0.1,
     scale: bg_size, // default width is 50.0
+    ..default()
   });
 
   commands.spawn((
@@ -63,21 +79,44 @@ pub fn spawn_background(
   ));
 }
 
-fn update_background_offset(
-  camera: Single<&Transform2D, With<PrimaryCamera>>,
-  mut background_query: Query<
+fn update_background(
+  feilds: Query<(&Transform2D, &ForceField), Without<Background>>,
+  camera: Single<&Transform2D, (With<PrimaryCamera>, Without<Background>)>,
+  mut background: Query<
     (&mut Transform2D, &MeshMaterial2d<BackgroundMaterial>),
     (With<Background>, Without<PrimaryCamera>),
   >,
   mut materials: ResMut<Assets<BackgroundMaterial>>,
+  time: Res<Time>,
 ) {
-  let cam = camera.into_inner();
+  let cam = camera.into_inner().translation;
 
-  for (mut bg, handle) in background_query.iter_mut() {
-    bg.translation = cam.translation;
+  let mut wells: Vec<GravityWell> = feilds
+    .iter()
+    .map(|(tf, force)| GravityWell {
+      position: tf.translation, // Мировая позиция
+      strength: force.strength,
+      radius: force.radius,
+    })
+    // in 100m of camera
+    .filter(|w| w.position.distance_squared(cam) < 100.0 * 100.0)
+    .collect();
+
+  wells.truncate(MAX_GRAVITY_WELLS);
+  let active_count = wells.len() as i32;
+
+  while wells.len() < MAX_GRAVITY_WELLS {
+    wells.push(GravityWell::default());
+  }
+
+  for (mut bg, handle) in background.iter_mut() {
+    bg.translation = cam;
 
     if let Some(mat) = materials.get_mut(handle) {
-      mat.offset = Vec2::new(cam.translation.x, -cam.translation.y);
+      mat.offset = cam;
+      mat.time = time.elapsed_secs();
+      mat.well_count = active_count;
+      mat.wells = wells.clone().try_into().unwrap();
     }
   }
 }

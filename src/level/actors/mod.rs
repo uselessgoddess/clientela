@@ -5,7 +5,7 @@ pub mod player;
 
 use crate::prelude::*;
 
-pub use {enemy::Enemy, env::Brick, player::Player};
+pub use {enemy::Enemy, env::Brick, player::Player, env::ForceField};
 
 pub fn plugin(app: &mut App) {
   app.add_plugins((player::plugin, enemy::plugin, env::plugin));

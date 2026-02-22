@@ -12,6 +12,7 @@ pub fn plugin(app: &mut App) {
 }
 
 #[derive(Component)]
+#[require(Transform)]
 pub struct ForceField {
   pub radius: f32,
   pub strength: f32,

@@ -7,6 +7,7 @@ use crate::prelude::*;
 pub use {
   background::{Background, BackgroundMaterial, spawn_background},
   brick::Brick,
+  force::ForceField,
 };
 
 pub fn plugin(app: &mut App) {
