@@ -1,4 +1,4 @@
-use crate::{level::Death, prelude::*};
+use crate::{level::logic::Death, prelude::*};
 
 pub fn plugin(app: &mut App) {
   app.register_type::<Lifetime>().add_systems(Update, period);
@@ -32,9 +32,9 @@ fn period(
   time: Res<Time>,
 ) {
   for (entity, mut period) in query.iter_mut() {
-    if period.tick(time.delta()).finished() {
+    if period.tick(time.delta()).is_finished() {
       if period.despawn {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
       } else {
         commands.entity(entity).trigger(Death);
       }

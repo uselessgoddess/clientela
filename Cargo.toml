@@ -16,7 +16,7 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 
-bevy_asset_loader = { version = "0.25"}
+bevy_asset_loader = { version = "0.25" }
 leafwing-input-manager = { version = "0.20", default-features = false, features = [
     "mouse",
     "keyboard",
@@ -29,6 +29,8 @@ egui = { version = "0.33", optional = true }
 egui_dock = { version = "0.18", optional = true }
 bevy_egui = { version = "0.39", optional = true }
 bevy-inspector-egui = { version = "0.36", optional = true }
+
+num = { version = "0.4", default-features = false }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
@@ -47,7 +49,9 @@ dev = [
 native = []
 editor = ["egui", "egui_dock", "bevy_egui", "bevy-inspector-egui"]
 dev_native = [
-    "dev", "native", "editor",
+    "dev",
+    "native",
+    "editor",
     # Enable asset hot reloading for native dev builds.
     "bevy/file_watcher",
     # Enable embedded asset hot reloading for native dev builds.

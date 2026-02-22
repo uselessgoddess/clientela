@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod bar;
 pub mod cache;
 mod debug;
 mod dev;
@@ -11,6 +12,7 @@ use crate::prelude::*;
 
 pub use {
   audio::{Music, SoundEffect, music, sound_effect, sound_effect_with},
+  bar::{Bar, BarHeight, Percentage},
   debug::{D, in_debug},
   ecs::{PausableSystems, Pause, Transform2D, Transform2DSystems},
   timer::{LazyTimer, RegisterTimer},

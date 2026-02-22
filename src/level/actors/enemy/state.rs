@@ -18,8 +18,9 @@ fn movement(
   let player = player.into_inner();
 
   for (mut enemy, stats) in query.iter_mut() {
-    enemy.translation += (player.translation - enemy.translation)
+    let movement = (player.translation - enemy.translation)
       * stats.speed
       * time.delta_secs();
+    enemy.translation += movement;
   }
 }

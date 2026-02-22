@@ -21,10 +21,20 @@ impl Plugin for GamePlugin {
     );
 
     app.add_plugins((ui::plugin, level::plugin, actors::plugin));
-    app.add_systems(Startup, spawn_camera);
+    app.add_systems(Startup, setup_camera);
   }
 }
 
-fn spawn_camera(mut commands: Commands) {
-  commands.spawn((Name::new("Camera"), PrimaryCamera));
+use bevy::camera::ScalingMode;
+
+fn setup_camera(mut commands: Commands) {
+  let mut projection = OrthographicProjection::default_2d();
+  projection.scaling_mode =
+    ScalingMode::FixedVertical { viewport_height: 50.0 };
+
+  commands.spawn((
+    PrimaryCamera,
+    Name::new("Camera"),
+    Projection::Orthographic(projection),
+  ));
 }

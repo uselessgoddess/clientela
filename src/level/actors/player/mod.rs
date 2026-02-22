@@ -30,7 +30,7 @@ pub struct Stats {
 
 impl Default for Stats {
   fn default() -> Self {
-    Self { speed: 32.0 }
+    Self { speed: 8.0 }
   }
 }
 
@@ -40,7 +40,7 @@ fn spawn(
   mut materials: ResMut<Assets<ColorMaterial>>,
   mut commands: Commands,
 ) {
-  let radius = 10.0;
+  let radius = 0.5;
 
   for (player, _) in query.iter() {
     let mesh = meshes.add(Circle::new(radius));

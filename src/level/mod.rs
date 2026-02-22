@@ -1,7 +1,7 @@
 pub mod actors;
 mod camera;
 mod follow;
-mod logic;
+pub mod logic;
 
 use crate::{level::actors::Player, prelude::*};
 

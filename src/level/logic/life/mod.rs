@@ -14,9 +14,7 @@ pub fn plugin(app: &mut App) {
 }
 
 #[derive(EntityEvent, Debug, Copy, Clone)]
-pub struct Death {
-  pub entity: Entity,
-}
+pub struct Death(pub Entity);
 
 #[derive(EntityEvent, Debug, Copy, Clone)]
 pub struct Damage {
@@ -24,9 +22,9 @@ pub struct Damage {
   pub value: f32,
 }
 
-fn damage(event: On<Damage>, mut query: Query<&mut Bar<Health>>) {
-  if let Ok(mut health) = query.get_mut(event.entity) {
-    health.dec(damage);
+fn damage(damage: On<Damage>, mut query: Query<&mut Bar<Health>>) {
+  if let Ok(mut health) = query.get_mut(damage.entity) {
+    health.dec(damage.value);
   }
 }
 

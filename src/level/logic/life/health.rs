@@ -5,12 +5,15 @@ pub fn plugin(app: &mut App) {
 }
 
 #[derive(Reflect)]
-pub struct Health;
+pub struct Health {
+  limit: f32,
+  value: f32,
+}
 
-// impl Percentage for Health {
-//   type Item = f32;
+impl Percentage for Health {
+  type Item = f32;
 
-//   fn value(value: f32, limit: f32) -> f32 {
-//     value / limit
-//   }
-// }
+  fn value(value: f32, limit: f32) -> f32 {
+    value / limit
+  }
+}
