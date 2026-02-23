@@ -58,7 +58,7 @@ fn spawn(
     for x in -10..10 {
       for y in -10..10 {
         commands.spawn((
-          ForceField { radius: 10.0, strength: -10.0 },
+          ForceField { radius: 10.0, strength: 10.0 },
           Transform2D::from_xy(x as f32 * 10.0, y as f32 * 10.0),
         ));
       }

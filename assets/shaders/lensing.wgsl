@@ -45,19 +45,16 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         let rs = well.radius;
         
         let abs_strength = abs(well.strength);
-        let force_dir = sign(well.strength); // 1.0 (Черная) или -1.0 (Белая)
+        let force_dir = sign(well.strength); 
 
         if (dist <= rs && abs_strength > 0.0) {
-            // Горизонт событий
             if (force_dir > 0.0) {
                 is_black_hole = 1.0;
             } else {
-                is_white_hole = 1.0; // Белая дыра ослепляет в центре
+                is_white_hole = 1.0; 
             }
         } else if (abs_strength > 0.0) {
             
-            // Быстрое отсечение прямо в шейдере (если пиксель далеко, не считаем тяжелую математику)
-            // 20.0 - это радиус влияния в мировых координатах. Подбери по вкусу!
             if (dist > 30.0) { continue; }
 
             let safe_dist = max(dist, rs * 1.02); 
@@ -70,21 +67,19 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let shift_len = length(raw_shift);
             let smooth_shift_len = max_shift * (1.0 - exp(-shift_len / max_shift));
             
-            // Если force_dir отрицательный, UV сдвигается в обратную сторону (эффект выпуклости)
             let uv_shift = dir * smooth_shift_len * force_dir;
             total_uv_offset -= uv_shift; 
             
             max_distortion = max(max_distortion, smooth_shift_len);
 
-            // Аккреционный диск
             let photon_sphere = rs * 1.5;
             let glow_dist = abs(dist - photon_sphere);
             let pulse = 1.0 + sin(settings.time * 6.0 - dist * 2.0 * force_dir) * 0.15;
             let glow = exp(-glow_dist * 3.5) * (abs_strength * 0.015) * pulse;
             
-            // Цвет: Синий для черной дыры, Золотой/Белый для белой дыры
-            let color_bh = vec3(0.2, 0.6, 1.0);
-            let color_wh = vec3(1.0, 0.9, 0.5);
+            // --- HDR ЦВЕТА (Значения > 1.0 вызывают Bloom) ---
+            let color_bh = vec3(1.0, 3.0, 10.0); // Пылающая синяя плазма
+            let color_wh = vec3(10.0, 8.0, 4.0); // Золотое солнце
             let current_glow_color = mix(color_wh, color_bh, step(0.0, well.strength));
             
             total_glow += current_glow_color * glow;
@@ -93,7 +88,6 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
 
     let final_uv = uv + total_uv_offset;
 
-    // --- ХРОМАТИЧЕСКАЯ АБЕРРАЦИЯ ---
     let ca_strength = min(max_distortion * 0.8, 0.015);
     let uv_dir = normalize(total_uv_offset + vec2(0.0001));
 
@@ -107,12 +101,14 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     
     var final_color = vec3<f32>(color_r, color_g, color_b);
 
-    // Добавляем свечение плазмы
+    // Добавляем свечение поверх всего
     final_color += total_glow;
 
-    // Горизонт событий (Абсолютный свет или Абсолютная тьма)
+    // --- СИНГУЛЯРНОСТИ ---
+    // Черная дыра поглощает свет
     final_color = mix(final_color, vec3<f32>(0.0, 0.0, 0.0), is_black_hole);
-    final_color = mix(final_color, vec3<f32>(2.0, 2.0, 2.0), is_white_hole); // Пересвет (Bloom подхватит)
+    // Белая дыра ослепляет (HDR: 30.0! Это вызовет массивное гало блума)
+    final_color = mix(final_color, vec3<f32>(30.0, 28.0, 25.0), is_white_hole); 
 
     let vignette = 1.0 - smoothstep(0.4, 0.75, distance(uv, vec2(0.5)));
     final_color *= mix(0.7, 1.0, vignette);

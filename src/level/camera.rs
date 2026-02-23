@@ -10,12 +10,15 @@ use bevy::{
   camera::{
     ImageRenderTarget, RenderTarget, ScalingMode, visibility::RenderLayers,
   },
+  core_pipeline::tonemapping::Tonemapping,
+  post_process::bloom::{Bloom, BloomCompositeMode},
   render::{
     render_resource::{
       Extent3d, TextureDescriptor, TextureDimension, TextureFormat,
       TextureUsages,
     },
     storage::ShaderStorageBuffer,
+    view::{ColorGrading, ColorGradingGlobal, Hdr},
   },
 };
 
@@ -57,8 +60,7 @@ fn setup(
       label: Some("Main Render Target"),
       size,
       dimension: TextureDimension::D2,
-      format: TextureFormat::Rgba8UnormSrgb,
-      // format: TextureFormat::Bgra8UnormSrgb,
+      format: TextureFormat::Rgba16Float,
       mip_level_count: 1,
       sample_count: 1,
       usage: TextureUsages::TEXTURE_BINDING
@@ -79,6 +81,12 @@ fn setup(
   commands.spawn((
     PrimaryCamera,
     Name::new("Game Camera"),
+    Hdr,
+    Camera {
+      order: 0,
+      clear_color: ClearColorConfig::Custom(Color::srgb(0.01, 0.01, 0.02)),
+      ..default()
+    },
     RenderTarget::Image(ImageRenderTarget {
       handle: image.clone(),
       scale_factor: 1.0,
@@ -90,7 +98,25 @@ fn setup(
   commands.spawn((
     PostProcessCamera,
     Name::new("Post Process Camera"),
+    Hdr,
     Camera { order: 1, clear_color: ClearColorConfig::Default, ..default() },
+    Tonemapping::TonyMcMapface,
+    Bloom {
+      intensity: 0.25,
+      low_frequency_boost: 0.6,
+      low_frequency_boost_curvature: 0.4,
+      high_pass_frequency: 0.8,
+      composite_mode: BloomCompositeMode::EnergyConserving,
+      ..default()
+    },
+    ColorGrading {
+      global: ColorGradingGlobal {
+        exposure: 0.15,
+        post_saturation: 1.2,
+        ..default()
+      },
+      ..default()
+    },
     RenderLayers::layer(1),
   ));
 

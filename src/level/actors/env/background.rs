@@ -57,7 +57,7 @@ pub fn spawn_background(
   let bg_size = 1000.0;
 
   let material = materials.add(BackgroundMaterial {
-    color: LinearRgba::new(0.2, 0.4, 0.8, 1.0),
+    color: LinearRgba::new(0.6, 1.2, 4.0, 1.0),
     offset: Vec2::ZERO,
     grid_size: 2.0,
     line_thickness: 0.05,
