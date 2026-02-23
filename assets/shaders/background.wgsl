@@ -31,6 +31,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let original_pos = world_pos;
 
     var glow = vec3(0.0);
+    var total_intensity = 0.0;
+
 
     // 2. Анимация гравитации
     for (var i = 0; i < material.well_count; i++) {
@@ -71,19 +73,20 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let flow_offset = dir * flow_speed * influence * sign(-well.strength);
             
             // Добавляем поток к координатам
+            total_intensity += influence;
             world_pos += flow_offset;
         }
     }
 
-    // 3. Рисуем сетку (по distortion coordinates)
-    let coord = world_pos / material.grid_size * 5.0;
-    let grid = abs(fract(coord - 0.5) - 0.5);
-    
-    // Делаем линии чуть тоньше внутри гравитации для красоты (опционально)
-    let line_dist = min(grid.x, grid.y) * 5.0; 
-    
-    let thickness = material.line_thickness; 
-    let line_alpha = 1.0 - smoothstep(thickness, thickness + 0.04, line_dist);
+    let cell_coord = world_pos - round(world_pos / material.grid_size) * material.grid_size;
+    let dist_to_edge = abs(cell_coord);
+    let dist_to_line = (material.grid_size / 2.0) - max(dist_to_edge.x, dist_to_edge.y);
+    let line_width_in_pixels = fwidth(dist_to_line / 20.0);
+    let line_alpha = smoothstep(
+        material.line_thickness - line_width_in_pixels, 
+        material.line_thickness + line_width_in_pixels, 
+        dist_to_line
+    );
 
     // ... Виньетка по original_pos или uv ...
     let dist_from_center = distance(mesh.uv, vec2(0.5));
@@ -92,9 +95,9 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     // Добавляем цвет в центре воронки (опционально - "Горизонт событий")
     // Если хочешь подсветить дыры
     
+    
+    let final_rgb = material.color.rgb * line_alpha + (glow * total_intensity * 0.3);
+    let final_alpha = (line_alpha * 0.4) + (total_intensity * 0.1);
 
-    let final_color = material.color.rgb + glow;
-    let final_alpha = line_alpha * vignette;
-
-    return vec4<f32>(final_color * final_alpha, final_alpha * 0.4); 
+    return vec4<f32>(final_rgb * vignette, final_alpha * vignette);
 }
