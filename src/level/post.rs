@@ -70,15 +70,20 @@ fn update_lensing(
   };
   let viewport_size = proj.area.size();
 
+  let culling = (viewport_size.length() * 1.5).powi(2);
   let mut wells: Vec<_> = fields
     .iter()
-    .map(|(tf, force)| GravityWell {
-      position: tf.translation,
-      strength: force.strength * 1.0,
-      radius: force.radius / 100.0,
+    .filter_map(|(tf, force)| {
+      let dist = tf.translation.distance_squared(camera_pos);
+      (dist < culling).then(|| GravityWell {
+        position: tf.translation,
+        strength: force.strength * 1.0,
+        radius: force.radius / 20.0,
+      })
     })
     .collect();
 
+  // FIXME: sort nearest wells
   wells.truncate(MAX_GRAVITY_WELLS);
   wells.resize(MAX_GRAVITY_WELLS, GravityWell::default());
 

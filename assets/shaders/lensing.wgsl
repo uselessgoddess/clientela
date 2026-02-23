@@ -1,83 +1,3 @@
-// #import bevy_sprite::mesh2d_vertex_output::VertexOutput
-// 
-// struct GravityWell {
-//     position: vec2<f32>, // Мировая позиция
-//     strength: f32,           // Масса (сила искажения)
-//     radius: f32,         // Радиус горизонта событий (черная зона)
-// }
-// 
-// struct LensingSettings {
-//     camera_pos: vec2<f32>,
-//     viewport_size: vec2<f32>,
-//     time: f32,
-//     well_count: u32,
-// }
-// 
-// @group(2) @binding(0) var<uniform> settings: LensingSettings;
-// // storage позволяет передавать тысячи элементов!
-// @group(2) @binding(1) var<storage, read> wells: array<GravityWell>;
-// @group(2) @binding(2) var screen_texture: texture_2d<f32>;
-// @group(2) @binding(3) var screen_sampler: sampler;
-// 
-// @fragment
-// fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
-//     let uv = mesh.uv;
-//     
-//     // Переводим UV в мировые координаты (с учетом позиции камеры)
-//     let world_pos = (uv - 0.5) * vec2(settings.viewport_size.x, -settings.viewport_size.y) + settings.camera_pos;
-// 
-//     var total_uv_offset = vec2(0.0);
-//     var event_horizon = 0.0;
-//     var total_force = 0.0;
-// 
-//     // Считаем влияние всех 4096 дыр
-//     for (var i = 0u; i < settings.well_count; i++) {
-//         let well = wells[i];
-//         
-//         let delta = world_pos - well.position;
-//         let dist = length(delta);
-//         
-//         // Физика: Искажение обратно пропорционально расстоянию.
-//         // max() предотвращает деление на 0 в самом центре дыры.
-//         let safe_dist = max(dist, well.radius);
-//         
-//         // Сила гравитационной линзы
-//         let force = well.strength / (safe_dist * safe_dist);
-//         let dir = delta / dist; // Направление ОТ дыры
-//         
-//         // Переводим мировое смещение в UV-смещение
-//         let uv_shift = (dir * force) / settings.viewport_size;
-//         total_uv_offset -= uv_shift; // Минус, так как линза затягивает свет
-//         total_force += force;
-// 
-//         // Если мы за горизонтом событий - свет не выходит
-//         if dist < well.radius {
-//             event_horizon = 1.0;
-//         }
-//     }
-// 
-//     let final_uv = uv + total_uv_offset;
-// 
-//     // --- Хроматическая аберрация (разложение спектра около дыр) ---
-//     // Чем сильнее сила притяжения (total_force), тем больше аберрация
-//     let aberration_strength = clamp(total_force * 0.05, 0.0, 0.05);
-//     
-//     let color_r = textureSample(screen_texture, screen_sampler, final_uv - total_uv_offset * aberration_strength).r;
-//     let color_g = textureSample(screen_texture, screen_sampler, final_uv).g;
-//     let color_b = textureSample(screen_texture, screen_sampler, final_uv + total_uv_offset * aberration_strength).b;
-//     
-//     var color = vec4<f32>(color_r, color_g, color_b, 1.0);
-// 
-//     // Внутри горизонта событий абсолютная пустота
-//     color = mix(color, vec4<f32>(0.0, 0.0, 0.0, 1.0), event_horizon);
-// 
-//     // Добавим легкое свечение "аккреционного диска" по краям линзы
-//     let glow = clamp(total_force * 0.005, 0.0, 0.3);
-//     color += vec4(0.2, 0.5, 1.0, 0.0) * glow; // Неоново-синее свечение
-// 
-//     return color;
-// }
-
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
 struct GravityWell {
@@ -86,7 +6,6 @@ struct GravityWell {
     radius: f32,
 }
 
-// Порядок строго как в Rust
 struct LensingSettings {
     camera_pos: vec2<f32>,
     viewport_size: vec2<f32>,
@@ -99,66 +18,104 @@ struct LensingSettings {
 @group(2) @binding(2) var screen_texture: texture_2d<f32>;
 @group(2) @binding(3) var screen_sampler: sampler;
 
+fn mirror_coord(v: f32) -> f32 {
+    let t = fract(v * 0.5) * 2.0;
+    return 1.0 - abs(t - 1.0);
+}
+
+fn mirror_uv(uv: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(mirror_coord(uv.x), mirror_coord(uv.y));
+}
+
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
-    // Мировая позиция пикселя экрана
     let world_pos = settings.camera_pos + (uv - 0.5) * vec2(settings.viewport_size.x, -settings.viewport_size.y);
 
     var total_uv_offset = vec2<f32>(0.0);
-    var is_in_event_horizon = 0.0;
-    var accretion_glow = vec3<f32>(0.0);
+    var is_black_hole = 0.0;
+    var is_white_hole = 0.0;
+    var total_glow = vec3<f32>(0.0);
     var max_distortion = 0.0;
 
     for (var i = 0u; i < settings.well_count; i++) {
         let well = wells[i];
         let delta = world_pos - well.position;
         let dist = length(delta);
+        let rs = well.radius;
         
-        let rs = well.radius;             // Радиус Шварцшильда
-        let photon_sphere = rs * 1.5;     // Фотонная сфера
+        let abs_strength = abs(well.strength);
+        let force_dir = sign(well.strength); // 1.0 (Черная) или -1.0 (Белая)
 
-        if (dist <= rs && well.strength > 0.0) {
-            is_in_event_horizon = 1.0;
-        } else if (well.strength > 0.0) {
-            // Эмуляция гравитационной линзы
-            let force = well.strength / (dist * dist + 0.01); 
+        if (dist <= rs && abs_strength > 0.0) {
+            // Горизонт событий
+            if (force_dir > 0.0) {
+                is_black_hole = 1.0;
+            } else {
+                is_white_hole = 1.0; // Белая дыра ослепляет в центре
+            }
+        } else if (abs_strength > 0.0) {
+            
+            // Быстрое отсечение прямо в шейдере (если пиксель далеко, не считаем тяжелую математику)
+            // 20.0 - это радиус влияния в мировых координатах. Подбери по вкусу!
+            if (dist > 30.0) { continue; }
+
+            let safe_dist = max(dist, rs * 1.02); 
+            let force = abs_strength / (safe_dist * safe_dist);
             let dir = delta / dist;
-            let uv_shift = (dir * force) / settings.viewport_size;
-            total_uv_offset -= uv_shift;
             
-            max_distortion = max(max_distortion, length(uv_shift));
+            let raw_shift = (dir * force) / settings.viewport_size;
+            
+            let max_shift = 0.25; 
+            let shift_len = length(raw_shift);
+            let smooth_shift_len = max_shift * (1.0 - exp(-shift_len / max_shift));
+            
+            // Если force_dir отрицательный, UV сдвигается в обратную сторону (эффект выпуклости)
+            let uv_shift = dir * smooth_shift_len * force_dir;
+            total_uv_offset -= uv_shift; 
+            
+            max_distortion = max(max_distortion, smooth_shift_len);
 
-            // Свечение аккреционного диска
+            // Аккреционный диск
+            let photon_sphere = rs * 1.5;
             let glow_dist = abs(dist - photon_sphere);
-            let pulse = 1.0 + sin(settings.time * 6.0 - dist * 2.0) * 0.2;
-            let glow_intensity = exp(-glow_dist * 5.0) * (well.strength * 0.015) * pulse;
+            let pulse = 1.0 + sin(settings.time * 6.0 - dist * 2.0 * force_dir) * 0.15;
+            let glow = exp(-glow_dist * 3.5) * (abs_strength * 0.015) * pulse;
             
-            accretion_glow += vec3(0.2, 0.6, 1.0) * glow_intensity; // Плазменный синий
+            // Цвет: Синий для черной дыры, Золотой/Белый для белой дыры
+            let color_bh = vec3(0.2, 0.6, 1.0);
+            let color_wh = vec3(1.0, 0.9, 0.5);
+            let current_glow_color = mix(color_wh, color_bh, step(0.0, well.strength));
+            
+            total_glow += current_glow_color * glow;
         }
     }
 
     let final_uv = uv + total_uv_offset;
 
-    // --- Хроматическая аберрация (разложение спектра около дыр) ---
-    let ca_strength = min(max_distortion * 40.0, 0.04); 
+    // --- ХРОМАТИЧЕСКАЯ АБЕРРАЦИЯ ---
+    let ca_strength = min(max_distortion * 0.8, 0.015);
     let uv_dir = normalize(total_uv_offset + vec2(0.0001));
 
-    let color_r = textureSample(screen_texture, screen_sampler, final_uv - uv_dir * ca_strength).r;
-    let color_g = textureSample(screen_texture, screen_sampler, final_uv).g;
-    let color_b = textureSample(screen_texture, screen_sampler, final_uv + uv_dir * ca_strength).b;
+    let r_uv = mirror_uv(final_uv - uv_dir * ca_strength);
+    let g_uv = mirror_uv(final_uv);
+    let b_uv = mirror_uv(final_uv + uv_dir * ca_strength);
+
+    let color_r = textureSample(screen_texture, screen_sampler, r_uv).r;
+    let color_g = textureSample(screen_texture, screen_sampler, g_uv).g;
+    let color_b = textureSample(screen_texture, screen_sampler, b_uv).b;
     
-    var color = vec3<f32>(color_r, color_g, color_b);
+    var final_color = vec3<f32>(color_r, color_g, color_b);
 
-    // Добавляем свечение поверх искажения
-    color += accretion_glow;
+    // Добавляем свечение плазмы
+    final_color += total_glow;
 
-    // Горизонт событий перекрывает всё (абсолютная чернота)
-    color = mix(color, vec3<f32>(0.0, 0.0, 0.0), is_in_event_horizon);
+    // Горизонт событий (Абсолютный свет или Абсолютная тьма)
+    final_color = mix(final_color, vec3<f32>(0.0, 0.0, 0.0), is_black_hole);
+    final_color = mix(final_color, vec3<f32>(2.0, 2.0, 2.0), is_white_hole); // Пересвет (Bloom подхватит)
 
-    // Легкая кинематографичная виньетка
-    let vignette = 1.0 - smoothstep(0.4, 0.7, distance(uv, vec2(0.5)));
-    color *= mix(0.8, 1.0, vignette);
+    let vignette = 1.0 - smoothstep(0.4, 0.75, distance(uv, vec2(0.5)));
+    final_color *= mix(0.7, 1.0, vignette);
 
-    return vec4<f32>(color, 1.0);
+    return vec4<f32>(final_color, 1.0);
 }
