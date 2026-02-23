@@ -9,9 +9,9 @@ pub fn plugin(app: &mut App) {
     apply_force_fields.in_set(VelocitySystems::Modify),
   );
   app.add_systems(Update, debug_force_fields.run_if(in_debug(D::L1)));
-}
+} 
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[require(Transform)]
 pub struct ForceField {
   pub radius: f32,
