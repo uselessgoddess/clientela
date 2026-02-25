@@ -2,7 +2,7 @@ use bevy::{
   asset::AssetMetaCheck,
   log::{DEFAULT_FILTER, LogPlugin},
   prelude::*,
-  window::WindowResolution,
+  window::{PresentMode, WindowResolution},
 };
 
 pub fn plugin(app: &mut App) {
@@ -13,6 +13,7 @@ pub fn plugin(app: &mut App) {
         .set(WindowPlugin {
           primary_window: Window {
             resolution: WindowResolution::new(1920, 1080),
+            present_mode: PresentMode::AutoNoVsync,
             // todo!> make configurable to use core as lib
             title: "Clientela".to_string(),
             fit_canvas_to_parent: true,

@@ -10,7 +10,7 @@ use bevy::{
   sprite_render::{Material2d, Material2dPlugin},
 };
 
-pub const MAX_GRAVITY_WELLS: usize = 4096;
+pub const MAX_GRAVITY_WELLS: usize = 256;
 
 pub fn plugin(app: &mut App) {
   app
@@ -25,22 +25,35 @@ pub struct GravityWell {
   pub radius: f32,
 }
 
-#[derive(ShaderType, Default, Debug, Clone)]
+#[derive(ShaderType, Debug, Clone)]
 pub struct LensingSettings {
   pub camera_pos: Vec2,
   pub viewport_size: Vec2,
   pub time: f32,
   pub well_count: u32,
+  pub _pad: Vec2,
+  pub wells: [GravityWell; MAX_GRAVITY_WELLS],
+}
+
+impl Default for LensingSettings {
+  fn default() -> Self {
+    Self {
+      camera_pos: Vec2::ZERO,
+      viewport_size: Vec2::ZERO,
+      time: 0.0,
+      well_count: 0,
+      _pad: Vec2::ZERO,
+      wells: [GravityWell::default(); _],
+    }
+  }
 }
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 pub struct LensingMaterial {
   #[uniform(0)]
   pub settings: LensingSettings,
-  #[storage(1, read_only)]
-  pub wells: Handle<ShaderStorageBuffer>,
-  #[texture(2)]
-  #[sampler(3)]
+  #[texture(1)]
+  #[sampler(2)]
   pub screen_texture: Handle<Image>,
 }
 
@@ -58,7 +71,6 @@ fn update_lensing(
   camera: Single<(&Projection, &Transform2D), With<PrimaryCamera>>,
   screen: Single<&MeshMaterial2d<LensingMaterial>, With<PostProcessScreen>>,
   mut materials: ResMut<Assets<LensingMaterial>>,
-  mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
   time: Res<Time>,
 ) {
   let (
@@ -71,31 +83,29 @@ fn update_lensing(
   let viewport_size = proj.area.size();
 
   let culling = (viewport_size.length() * 1.5).powi(2);
-  let mut wells: Vec<_> = fields
-    .iter()
-    .filter_map(|(tf, force)| {
-      let dist = tf.translation.distance_squared(camera_pos);
-      (dist < culling).then(|| GravityWell {
+  let mut wells = [GravityWell::default(); MAX_GRAVITY_WELLS];
+  let mut count = 0;
+
+  for (tf, force) in fields.iter() {
+    let dist = tf.translation.distance_squared(camera_pos);
+    if dist < culling && count < MAX_GRAVITY_WELLS {
+      wells[count] = GravityWell {
         position: tf.translation,
         strength: force.strength * 1.0,
         radius: force.radius / 20.0,
-      })
-    })
-    .collect();
+      };
+      count += 1;
+    }
+  }
 
-  // FIXME: sort nearest wells
-  wells.truncate(MAX_GRAVITY_WELLS);
-  wells.resize(MAX_GRAVITY_WELLS, GravityWell::default());
-
-  if let Some(material) = materials.get_mut(screen.into_inner())
-    && let Some(buffer) = buffers.get_mut(&material.wells)
-  {
+  if let Some(material) = materials.get_mut(screen.into_inner()) {
     material.settings = LensingSettings {
       time: time.elapsed_secs(),
       camera_pos,
       viewport_size,
-      well_count: wells.len() as u32,
+      well_count: count as u32,
+      wells,
+      ..default()
     };
-    buffer.set_data(wells);
   }
 }

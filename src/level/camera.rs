@@ -45,7 +45,6 @@ fn setup(
   mut images: ResMut<Assets<Image>>,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<LensingMaterial>>,
-  mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
   windows: Single<&Window>,
 ) {
   let window = windows.into_inner();
@@ -122,9 +121,6 @@ fn setup(
 
   let material = materials.add(LensingMaterial {
     settings: LensingSettings::default(),
-    wells: buffers.add(ShaderStorageBuffer::from(
-      [GravityWell::default(); MAX_GRAVITY_WELLS],
-    )),
     screen_texture: image,
   });
 

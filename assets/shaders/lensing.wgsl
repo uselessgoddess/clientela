@@ -11,12 +11,13 @@ struct LensingSettings {
     viewport_size: vec2<f32>,
     time: f32,
     well_count: u32,
+    _pad: vec2<f32>, 
+    wells: array<GravityWell, 256>, 
 }
 
 @group(2) @binding(0) var<uniform> settings: LensingSettings;
-@group(2) @binding(1) var<storage, read> wells: array<GravityWell>;
-@group(2) @binding(2) var screen_texture: texture_2d<f32>;
-@group(2) @binding(3) var screen_sampler: sampler;
+@group(2) @binding(1) var screen_texture: texture_2d<f32>;
+@group(2) @binding(2) var screen_sampler: sampler;
 
 fn mirror_coord(v: f32) -> f32 {
     let t = fract(v * 0.5) * 2.0;
@@ -39,7 +40,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     var max_distortion = 0.0;
 
     for (var i = 0u; i < settings.well_count; i++) {
-        let well = wells[i];
+        let well = settings.wells[i];
         let delta = world_pos - well.position;
         let dist = length(delta);
         let rs = well.radius;
