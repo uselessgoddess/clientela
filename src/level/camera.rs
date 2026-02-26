@@ -1,7 +1,7 @@
 use crate::{
   level::{
-    GravityWell, LensingMaterial, LensingSettings, MAX_GRAVITY_WELLS,
-    PostProcessScreen, Velocity, actors::Player,
+    LensingMaterial, LensingSettings, PostProcessScreen, Velocity,
+    actors::Player,
   },
   prelude::*,
 };
@@ -17,9 +17,9 @@ use bevy::{
       Extent3d, TextureDescriptor, TextureDimension, TextureFormat,
       TextureUsages,
     },
-    storage::ShaderStorageBuffer,
     view::{ColorGrading, ColorGradingGlobal, Hdr},
   },
+  window::WindowResized,
 };
 
 #[derive(
@@ -33,7 +33,7 @@ pub fn plugin(app: &mut App) {
   app
     .add_systems(Startup, setup)
     .add_systems(PostUpdate, follow.in_set(CameraSystems::Follow))
-    .add_systems(Update, resize_render_target);
+    .add_systems(Update, on_window_resized);
 }
 
 #[derive(Component)]
@@ -134,31 +134,36 @@ fn setup(
   ));
 }
 
-fn resize_render_target(
-  window: Single<&Window>,
+fn on_window_resized(
+  mut events: MessageReader<WindowResized>,
+  window: Single<Entity, With<PrimaryWindow>>,
   lensing: Single<&MeshMaterial2d<LensingMaterial>>,
   mut screen: Single<&mut Mesh2d, With<PostProcessScreen>>,
   mut images: ResMut<Assets<Image>>,
   mut meshes: ResMut<Assets<Mesh>>,
   materials: ResMut<Assets<LensingMaterial>>,
 ) {
-  let window = window.into_inner();
-  let width = (window.physical_width() as u32).max(1);
-  let height = (window.physical_height() as u32).max(1);
+  let primary = window.into_inner();
+  let lensing = lensing.into_inner();
 
-  if let Some(material) = materials.get(lensing.into_inner())
-    && let Some(image) = images.get_mut(&material.screen_texture)
-  {
-    if image.texture_descriptor.size.width != width
-      || image.texture_descriptor.size.height != height
-    {
-      let size = Extent3d { width, height, ..default() };
-      image.resize(size);
+  for event in events.read() {
+    if event.window == primary {
+      info!("Window resized to {}x{}", event.width, event.height);
 
-      let logical_width = window.width().max(1.0);
-      let logical_height = window.height().max(1.0);
-      **screen =
-        Mesh2d(meshes.add(Rectangle::new(logical_width, logical_height)));
+      let width = event.width.max(1.0) as u32;
+      let height = event.height.max(1.0) as u32;
+
+      if let Some(material) = materials.get(lensing) {
+        if let Some(image) = images.get_mut(&material.screen_texture) {
+          let size = Extent3d { width, height, ..default() };
+          image.resize(size);
+
+          let logical_width = event.width.max(1.0);
+          let logical_height = event.height.max(1.0);
+          **screen =
+            Mesh2d(meshes.add(Rectangle::new(logical_width, logical_height)));
+        }
+      }
     }
   }
 }

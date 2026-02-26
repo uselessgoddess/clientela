@@ -56,8 +56,13 @@ fn spawn(
       .insert((Mesh2d(mesh), MeshMaterial2d(material)));
 
     commands.spawn((
-      ForceField { radius: 10.0, strength: 10.0 },
+      ForceField::from_strength(-10.0),
       Transform2D::from_xy(10.0, 10.0),
+    ));
+
+    commands.spawn((
+      ForceField::from_radius(10.0, false),
+      Transform2D::from_xy(10.0, 20.0),
     ));
   }
 }

@@ -68,8 +68,14 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let shift_len = length(raw_shift);
             let smooth_shift_len = max_shift * (1.0 - exp(-shift_len / max_shift));
             
-            let uv_shift = dir * smooth_shift_len * force_dir;
-            total_uv_offset -= uv_shift; 
+            let uv_delta = delta / vec2<f32>(settings.viewport_size.x, -settings.viewport_size.y);
+            let uv_dir = normalize(uv_delta); 
+            
+            // 2. Умножаем правильное направление на силу и знак дыры
+            let uv_shift = uv_dir * smooth_shift_len * force_dir;
+            
+            // 3. ДОБАВЛЯЕМ (а не вычитаем) смещение к UV
+            total_uv_offset += uv_shift;
             
             max_distortion = max(max_distortion, smooth_shift_len);
 
