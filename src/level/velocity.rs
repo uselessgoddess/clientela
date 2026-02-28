@@ -27,10 +27,8 @@ pub fn apply_velocity(
   mut query: Query<(&mut Transform2D, &mut Velocity)>,
   time: Res<Time>,
 ) {
-  for (mut transform, mut velocity) in query.iter_mut() {
-    if velocity.length_squared() > 0.0 {
-      transform.translation += velocity.0 * time.delta_secs();
-      velocity.0 = Vec2::ZERO;
-    }
-  }
+  query.par_iter_mut().for_each(|(mut transform, mut velocity)| {
+    transform.translation += velocity.0 * time.delta_secs();
+    velocity.0 = Vec2::ZERO;
+  });
 }

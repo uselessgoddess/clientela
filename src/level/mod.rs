@@ -2,6 +2,7 @@ pub mod actors;
 mod camera;
 mod follow;
 pub mod logic;
+mod physics;
 mod post;
 mod velocity;
 
@@ -10,6 +11,7 @@ use crate::{level::actors::Player, prelude::*};
 pub use {
   camera::CameraSystems,
   follow::{Follow, FollowMouse},
+  physics::{Collider, CollisionEvent, CollisionLayers, SpatialGrid},
   post::{
     GravityWell, LensingMaterial, LensingSettings, MAX_GRAVITY_WELLS,
     PostProcessScreen,
@@ -28,6 +30,7 @@ pub fn plugin(app: &mut App) {
   app.add_plugins((
     camera::plugin,
     velocity::plugin,
+    physics::plugin,
     follow::plugin,
     logic::plugin,
     post::plugin,

@@ -1,6 +1,9 @@
 mod state;
 
-use crate::{level::Velocity, prelude::*};
+use crate::{
+  level::{Collider, CollisionLayers, Velocity, physics},
+  prelude::*,
+};
 
 pub fn plugin(app: &mut App) {
   app.add_plugins((
@@ -57,6 +60,11 @@ fn spawn(
       YSort::default(),
       Mesh2d(mesh),
       MeshMaterial2d(material),
+      Collider(radius),
+      CollisionLayers::new(
+        physics::Layer::ENEMY,
+        physics::Layer::PROJECTILE | physics::Layer::PLAYER,
+      ),
     ));
   }
 }

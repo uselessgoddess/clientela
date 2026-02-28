@@ -38,19 +38,37 @@ fn apply_force_fields(
   fields: Query<(&Transform2D, &ForceField)>,
   mut actors: Query<(&Transform2D, &mut Velocity), Without<ForceField>>,
 ) {
-  for (field, force) in fields.iter() {
-    for (actor, mut velocity) in actors.iter_mut() {
-      let diff = actor.translation - field.translation;
+  let fields_data: Vec<_> = fields
+    .iter()
+    .map(|(t, f)| (t.translation, f.radius, f.strength, f.radius * f.radius))
+    .collect();
 
-      if diff.length() < force.radius {
-        let dir = diff / diff.length();
-        let dist = diff.length().max(0.5);
-        let physical_force = force.strength / (dist * dist);
-        let edge_smoothing = (1.0 - dist / force.radius).max(0.0);
-        velocity.0 += -dir * physical_force * edge_smoothing;
+  if fields_data.is_empty() {
+    return;
+  }
+
+  actors.par_iter_mut().for_each(|(actor, mut velocity)| {
+    let mut total_force = Vec2::ZERO;
+
+    for &(field_pos, radius, strength, radius_sq) in &fields_data {
+      let diff = actor.translation - field_pos;
+      let dist_sq = diff.length_squared();
+
+      if dist_sq < radius_sq {
+        let dist = dist_sq.sqrt().max(0.5);
+        let dir = diff / dist;
+
+        let physical_force = strength / dist_sq;
+        let edge_smoothing = (1.0 - dist / radius).max(0.0);
+
+        total_force += -dir * physical_force * edge_smoothing;
       }
     }
-  }
+
+    if total_force != Vec2::ZERO {
+      velocity.0 += total_force;
+    }
+  });
 }
 
 fn debug_force_fields(

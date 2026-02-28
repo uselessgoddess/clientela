@@ -25,5 +25,5 @@ impl Plugin for GamePlugin {
 }
 
 fn setup(mut commands: Commands) {
-  // commands.insert_resource(D::L2);
+  commands.insert_resource(D::L2);
 }

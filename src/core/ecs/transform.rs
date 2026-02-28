@@ -12,45 +12,38 @@ pub fn plugin(app: &mut App) {
     Transform2DSystems::Propagate.after(TransformSystems::Propagate),
   );
   app.register_type::<Transform2D>();
-  app.add_systems(First, spawn);
+  app.add_systems(First, spawn_transform2d);
   app.add_systems(
     PostUpdate,
-    (
-      sync_3d.before(TransformSystems::Propagate),
-      sync_2d.in_set(Transform2DSystems::Propagate),
-    ),
+    (sync_2d, sync_3d).chain().in_set(Transform2DSystems::Propagate),
   );
 }
 
-#[derive(Component)]
-struct Reprojection(Transform);
-
-fn spawn(
+fn spawn_transform2d(
   query: Query<(Entity, &Transform), Added<Transform>>,
-  mut commands: Commands,
+  par_commands: ParallelCommands,
 ) {
-  for (entity, &transform) in query.iter() {
-    commands.entity(entity).insert(Transform2D::from(transform));
-  }
+  query.par_iter().for_each(|(entity, transform)| {
+    par_commands.command_scope(|mut commands| {
+      commands.entity(entity).insert(Transform2D::from(*transform));
+    });
+  });
 }
 
-fn sync_2d(query: Query<(Entity, &Transform2D)>, mut commands: Commands) {
-  for (entity, &transform) in query.iter() {
-    let transform = Transform::from(transform);
-    commands.entity(entity).insert(transform).insert(Reprojection(transform));
-  }
+fn sync_2d(
+  mut query: Query<(&Transform2D, &mut Transform), Changed<Transform2D>>,
+) {
+  query.par_iter_mut().for_each(|(t2d, mut t3d)| {
+    *t3d = Transform::from(*t2d);
+  });
 }
 
 fn sync_3d(
-  mut query: Query<(&mut Transform2D, Option<&Transform>, &Reprojection)>,
+  mut query: Query<(&Transform, &mut Transform2D), Changed<Transform>>,
 ) {
-  for (mut master, slave, &Reprojection(proj)) in query.iter_mut() {
-    if let Some(&slave) = slave
-      && slave != proj
-    {
-      *master = Transform2D::from(slave);
-    }
-  }
+  query.par_iter_mut().for_each(|(t3d, mut t2d)| {
+    t2d.set_if_neq(Transform2D::from(*t3d));
+  });
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Component, Reflect)]

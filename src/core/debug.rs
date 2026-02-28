@@ -23,13 +23,13 @@ fn fps_overlay(app: &mut App) {
         font_smoothing: FontSmoothing::default(),
         ..default()
       },
-      text_color: Color::srgb(0.1, 1.0, 0.2), // Неоновый зеленый
+      text_color: Color::srgb(0.1, 1.0, 0.2),
       enabled: true,
       refresh_interval: Duration::from_millis(100),
       frame_time_graph_config: FrameTimeGraphConfig {
         enabled: true,
         min_fps: 30.0,
-        target_fps: 144.0, // Твоя герцовка
+        target_fps: 180.0,
       },
     },
   });

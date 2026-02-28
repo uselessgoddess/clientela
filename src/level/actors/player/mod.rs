@@ -3,7 +3,11 @@ mod input;
 mod state;
 
 use crate::{
-  level::{Velocity, actors::ForceField},
+  level::{
+    Collider, CollisionLayers, Level, Velocity,
+    actors::{self, ForceField},
+    physics,
+  },
   prelude::*,
 };
 
@@ -40,10 +44,13 @@ impl Default for Stats {
 
 fn spawn(
   query: Query<(Entity, &Player), Added<Player>>,
+  level: Single<Entity, With<Level>>,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<ColorMaterial>>,
   mut commands: Commands,
 ) {
+  let level = level.into_inner();
+
   let radius = 0.5;
 
   for (player, _) in query.iter() {
@@ -53,7 +60,11 @@ fn spawn(
     commands
       .entity(player)
       .insert((input::map(), state::Controller))
-      .insert((Mesh2d(mesh), MeshMaterial2d(material)));
+      .insert((Mesh2d(mesh), MeshMaterial2d(material)))
+      .insert((
+        Collider(radius),
+        CollisionLayers::new(physics::Layer::PLAYER, physics::Layer::ENEMY),
+      ));
 
     commands.spawn((
       ForceField::from_strength(-10.0),
