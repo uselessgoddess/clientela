@@ -9,7 +9,7 @@ pub enum Transform2DSystems {
 pub fn plugin(app: &mut App) {
   app.configure_sets(
     PostUpdate,
-    Transform2DSystems::Propagate.after(TransformSystems::Propagate),
+    Transform2DSystems::Propagate.before(TransformSystems::Propagate),
   );
   app.register_type::<Transform2D>();
   app.add_systems(First, spawn_transform2d);

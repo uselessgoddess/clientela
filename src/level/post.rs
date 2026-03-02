@@ -91,8 +91,8 @@ fn update_lensing(
     if dist < culling && count < MAX_GRAVITY_WELLS {
       wells[count] = GravityWell {
         position: tf.translation,
-        strength: force.strength * 1.0,
-        radius: force.radius / 20.0,
+        strength: force.force * 1.0,
+        radius: force.horizon(),
       };
       count += 1;
     }

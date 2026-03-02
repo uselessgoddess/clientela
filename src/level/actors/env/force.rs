@@ -14,23 +14,17 @@ pub fn plugin(app: &mut App) {
 #[derive(Component, Reflect)]
 #[require(Transform)]
 pub struct ForceField {
+  pub force: f32,
   pub radius: f32,
-  pub strength: f32,
 }
 
 impl ForceField {
-  pub const MIN_EFFECTIVE_FORCE: f32 = 0.1;
-
-  pub fn from_strength(strength: f32) -> Self {
-    let radius = (strength.abs() / Self::MIN_EFFECTIVE_FORCE).sqrt();
-    Self { radius, strength }
+  pub fn new(force: f32, radius: f32) -> Self {
+    Self { force, radius }
   }
 
-  pub fn from_radius(radius: f32, is_white: bool) -> Self {
-    let strength = Self::MIN_EFFECTIVE_FORCE
-      * (radius * radius)
-      * if is_white { -1.0 } else { 1.0 };
-    Self { radius, strength }
+  pub fn horizon(&self) -> f32 {
+    self.radius / 20.0
   }
 }
 
@@ -40,7 +34,10 @@ fn apply_force_fields(
 ) {
   let fields_data: Vec<_> = fields
     .iter()
-    .map(|(t, f)| (t.translation, f.radius, f.strength, f.radius * f.radius))
+    .map(|(t, f)| {
+      let horizon = f.horizon();
+      (t.translation, f.radius * f.radius, f.force, horizon * horizon)
+    })
     .collect();
 
   if fields_data.is_empty() {
@@ -50,18 +47,15 @@ fn apply_force_fields(
   actors.par_iter_mut().for_each(|(actor, mut velocity)| {
     let mut total_force = Vec2::ZERO;
 
-    for &(field_pos, radius, strength, radius_sq) in &fields_data {
-      let diff = actor.translation - field_pos;
+    for &(field_pos, radius_sq, force, softening_sq) in &fields_data {
+      let diff = field_pos - actor.translation;
       let dist_sq = diff.length_squared();
 
       if dist_sq < radius_sq {
-        let dist = dist_sq.sqrt().max(0.5);
-        let dir = diff / dist;
-
-        let physical_force = strength / dist_sq;
-        let edge_smoothing = (1.0 - dist / radius).max(0.0);
-
-        total_force += -dir * physical_force * edge_smoothing;
+        let dist = dist_sq.sqrt();
+        let dir = if dist > f32::EPSILON { diff / dist } else { Vec2::ZERO };
+        total_force += dir * force / (dist_sq + softening_sq)
+          * (1.0 - dist_sq / radius_sq).max(0.0);
       }
     }
 
@@ -70,7 +64,6 @@ fn apply_force_fields(
     }
   });
 }
-
 fn debug_force_fields(
   fields: Query<(&Transform2D, &ForceField)>,
   mut gizmos: Gizmos,

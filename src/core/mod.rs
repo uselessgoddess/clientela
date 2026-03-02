@@ -14,7 +14,7 @@ pub use {
   audio::{Music, SoundEffect, music, sound_effect, sound_effect_with},
   bar::{Bar, BarHeight, Percentage},
   debug::{D, in_debug},
-  ecs::{PausableSystems, Pause, Transform2D, Transform2DSystems},
+  ecs::{CommandsOf, PausableSystems, Pause, Transform2D, Transform2DSystems},
   timer::{LazyTimer, RegisterTimer},
   ysort::{BACKGROUND_OFFSET, YSort},
 };

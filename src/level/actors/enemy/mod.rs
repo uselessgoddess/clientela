@@ -1,15 +1,26 @@
+mod assets;
+mod constellation;
 mod state;
 
+use std::f32::consts::TAU;
+
 use crate::{
-  level::{Collider, CollisionLayers, Velocity, physics},
+  level::{
+    Collider, CollisionLayers, Level, Velocity,
+    actors::{EnemyKind, Player, SpawnEnemy},
+    physics,
+  },
   prelude::*,
 };
 
+use constellation::Constellation;
+
 pub fn plugin(app: &mut App) {
-  app.add_plugins((
-    // boid::plugin,
-  ));
-  app.add_systems(Update, spawn.in_set(Systems::Spawn));
+  app.add_plugins((assets::plugin,));
+  app
+    .add_systems(Update, spawn.in_set(Systems::Spawn))
+    .add_systems(Update, movement.in_set(Systems::Update))
+    .add_observer(on_spawn);
 }
 
 #[derive(Component, Reflect)]
@@ -44,27 +55,78 @@ impl Default for Attack {
   }
 }
 
-fn spawn(
-  query: Query<(Entity, &Enemy), Added<Enemy>>,
-  mut meshes: ResMut<Assets<Mesh>>,
-  mut materials: ResMut<Assets<ColorMaterial>>,
-  mut commands: Commands,
-) {
-  let radius = 0.33;
-
+fn spawn(query: Query<(Entity, &Enemy), Added<Enemy>>, mut commands: Commands) {
   for (entity, _enemy) in query.iter() {
-    let mesh = meshes.add(Circle::new(radius));
-    let material = materials.add(Color::srgb(0.3, 0.2, 0.1));
-
     commands.entity(entity).insert((
       YSort::default(),
-      Mesh2d(mesh),
-      MeshMaterial2d(material),
-      Collider(radius),
+      Velocity::default(),
       CollisionLayers::new(
         physics::Layer::ENEMY,
         physics::Layer::PROJECTILE | physics::Layer::PLAYER,
       ),
     ));
+  }
+}
+
+fn movement(
+  player: Single<&Transform2D, With<Player>>,
+  mut enemies: Query<
+    (&mut Transform2D, &Stats),
+    (With<Enemy>, Without<Player>),
+  >,
+  time: Res<Time>,
+) {
+  let player = player.into_inner();
+  for (mut enemy, stats) in enemies.iter_mut() {
+    let diff = player.translation - enemy.translation;
+    enemy.translation +=
+      diff.normalize_or_zero() * stats.speed * time.delta_secs();
+  }
+}
+
+fn on_spawn(
+  spawn: On<SpawnEnemy>,
+  assets: Res<assets::EnemyAssets>,
+  mut commands: CommandsOf<Level>,
+) {
+  let (kind, pos) = (spawn.enemy, spawn.pos);
+
+  match kind {
+    EnemyKind::Swarm => {
+      let (mesh, material) = assets.swarm.clone();
+      let radius = 0.3;
+      commands.spawn((Name::new("Swarm"), Enemy)).insert((
+        Stats { speed: 3.5, attack: default() },
+        Transform2D::from_translation(pos).with_scale(Vec2::splat(radius)),
+        Collider(radius),
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
+      ));
+    }
+    EnemyKind::Constellation(nodes) => {
+      let (mesh, material) = assets.swarm.clone();
+
+      let nodes: Vec<_> = (0..nodes)
+        .map(|i| {
+          let offset = Vec2::from_angle((TAU / nodes as f32) * i as f32) * 2.0;
+          let radius = 0.3;
+
+          commands
+            .spawn((Name::new("Constellation Node"), Enemy))
+            .insert((
+              Stats { speed: 1.5, attack: default() },
+              Transform2D::from_translation(pos + offset)
+                .with_scale(Vec2::splat(radius)),
+              Collider(radius),
+              Mesh2d(mesh.clone()),
+              MeshMaterial2d(material.clone()),
+            ))
+            .id()
+        })
+        .collect();
+
+      commands.spawn(Constellation(nodes));
+    }
+    _ => {}
   }
 }
