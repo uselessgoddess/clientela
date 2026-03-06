@@ -13,7 +13,8 @@ pub fn plugin(app: &mut App) {
     PostUpdate,
     (PhysicsSystems::PopulateGrid, PhysicsSystems::Update)
       .chain()
-      .before(TransformSystems::Propagate),
+      .before(TransformSystems::Propagate)
+      .in_set(PausableSystems),
   );
 
   app
@@ -22,7 +23,11 @@ pub fn plugin(app: &mut App) {
       PostUpdate,
       (clear_grid, populate_grid).chain().in_set(PhysicsSystems::PopulateGrid),
     )
-    .add_systems(Update, debug_spatial_grid.run_if(in_debug(D::L1)));
+    // TODO: toggle physics debugs independently
+    .add_systems(
+      Update,
+      (debug_spatial_grid, debug_colliders).run_if(in_debug(D::L1)),
+    );
 }
 
 #[derive(Reflect, Clone, Copy, PartialEq, Eq, Debug)]
@@ -102,7 +107,6 @@ impl SpatialGrid {
   pub fn query_nearest(
     &self,
     pos: Vec2,
-    radius: f32,
   ) -> impl Iterator<Item = &GridEntry> + '_ {
     let (cx, cy) = Self::pos_to_cell(pos);
     let (min_x, min_y, max_x, max_y) = (cx - 1, cy - 1, cx + 1, cy + 1);
@@ -151,5 +155,14 @@ pub fn debug_spatial_grid(grid: Res<SpatialGrid>, mut gizmos: Gizmos) {
     let color = Color::LinearRgba(LinearRgba::new(0.0, intensity, 0.0, 1.0)); // Неоновый зеленый
 
     gizmos.rect_2d(center, Vec2::splat(CELL_SIZE - 0.1), color);
+  }
+}
+
+pub fn debug_colliders(
+  query: Query<(&Transform2D, &Collider)>,
+  mut gizmos: Gizmos,
+) {
+  for (&transform, &Collider(radius)) in query.iter() {
+    gizmos.circle_2d(transform, radius, ORANGE_500);
   }
 }
